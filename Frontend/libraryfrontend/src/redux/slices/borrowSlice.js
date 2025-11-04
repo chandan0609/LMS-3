@@ -45,6 +45,21 @@ export const returnBorrowedBook = createAsyncThunk(
     }
   }
 );
+export const sendBorrowerEmail = createAsyncThunk(
+  "borrows/sendBorrowerEmail",
+  async ({ id, subject, message }, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post(`/borrow-records/${id}/send_email/`, {
+        subject,
+        message,
+      });
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || "Failed to send email");
+    }
+  }
+);
+
 
 export const deleteBorrowRecord = createAsyncThunk(
   "borrows/deleteBorrowRecords",
@@ -125,7 +140,13 @@ const borrowSlice = createSlice({
       .addCase(deleteBorrowRecord.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-      });
+      })
+      .addCase(sendBorrowerEmail.fulfilled,(state,action)=> {
+        state.successMessage = action.payload.message;
+      })
+      .addCase(sendBorrowerEmail.rejected,(state,action)=> {
+        state.error = action.payload;
+      })
   },
 });
 export const { clearBorrowError, clearBorrowSuccess } = borrowSlice.actions;

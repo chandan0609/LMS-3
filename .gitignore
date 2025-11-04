@@ -1,0 +1,5 @@
+# Ignore backend virtual environment
+backend/venv/
+
+# Node modules for frontend
+frontend/libraryfrontend/node_modules/

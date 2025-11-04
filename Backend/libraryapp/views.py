@@ -11,6 +11,9 @@ from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.exceptions import ValidationError
 from .permissions import IsAdminOrLibrarian
+from rest_framework import status
+from django.core.mail import send_mail
+from django.conf import settings
 # Fixed UserViewSet - removed duplicate class definition
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -115,6 +118,35 @@ class BorrowRecordViewSet(viewsets.ModelViewSet):
         book.save()
         
         return Response({'message': 'Book returned successfully'})
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrLibrarian])
+    def send_email(self, request, pk=None):
+        """Allow librarian/admin to send a custom email to the borrower"""
+        borrow_record = self.get_object()
+        user = borrow_record.user
+        subject = request.data.get('subject')
+        message = request.data.get('message')
+
+        if not subject or not message:
+            return Response(
+                {'error': 'Subject and message are required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+            return Response({'message': 'Email sent successfully.'})
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to send email: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
